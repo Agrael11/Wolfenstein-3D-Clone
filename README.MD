@@ -33,11 +33,11 @@ ALT + Enter - Fullscreen mode
 
 ## Images
 
-(/images/1.png)
-(/images/2.png)
-(/images/3.png)
-(/images/4.png)
-(/images/anim.png)
+![CELL](/images/1.png)
+![CELLS](/images/2.png)
+![ESCAPE](/images/3.png)
+![DIRT](/images/4.png)
+![GIF](/images/anim.png)
 
 ## Technical Informations
 
