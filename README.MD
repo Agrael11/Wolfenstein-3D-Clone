@@ -33,11 +33,11 @@ ALT + Enter - Fullscreen mode
 
 ## Images
 
-![CELL](/images/1.png)
-![CELLS](/images/2.png)
-![ESCAPE](/images/3.png)
-![DIRT](/images/4.png)
-![GIF](/images/anim.png)
+![CELL](https://raw.githubusercontent.com/Agrael11/Wolfenstein-3D-Clone/master/Images/1.png)
+![CELLS](https://raw.githubusercontent.com/Agrael11/Wolfenstein-3D-Clone/master/Images/2.png)
+![ESCAPE](https://raw.githubusercontent.com/Agrael11/Wolfenstein-3D-Clone/master/Images/3.png)
+![DIRT](https://raw.githubusercontent.com/Agrael11/Wolfenstein-3D-Clone/master/Images/4.png)
+![GIF](https://raw.githubusercontent.com/Agrael11/Wolfenstein-3D-Clone/master/Images/anim.gif)
 
 ## Technical Informations
 
