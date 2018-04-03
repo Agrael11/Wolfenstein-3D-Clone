@@ -91,15 +91,21 @@ namespace _3DTest
                 foreach (Entity door in doors.Values)
                 {
                     double dist = door.Position.Dist(playerPos);
-                    if (dist < 200)
+                    if (dist < 150)
                     {
                         if (Entities.GetEntity(door.EntityType).Type == EntityType.EntityClass.DOOR)
-                            door.OffSetX = 200 - dist;
+                            door.OffSetX = 150 - dist;
                         else
-                            door.OffSetY = 200 - dist;
+                            door.OffSetY = 150 - dist;
+                    }
+                    else
+                    {
+                        if (Entities.GetEntity(door.EntityType).Type == EntityType.EntityClass.DOOR)
+                            door.OffSetX = 0;
+                        else
+                            door.OffSetY = 0;
                     }
                 }
-                //else door1.OffSetX = 0;
                 //door1.OffSetX++;
                 //door1.OffSetX %= 60;
                 DrawFrame();
@@ -165,8 +171,7 @@ namespace _3DTest
             }
             SetPictureBox(display);
         }
-       
-
+        
         public delegate void _setPictureBox(Bitmap bmp);
         public void SetPictureBox(Bitmap bmp)
         {
@@ -527,7 +532,7 @@ namespace _3DTest
             }
             if (e.KeyCode == Keys.D)
             {
-                playerAngle+=playerSpeed/4;
+                playerAngle += playerSpeed / 4;
             }
             if (e.KeyCode == Keys.W)
             {
