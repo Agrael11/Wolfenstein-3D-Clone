@@ -12,12 +12,12 @@ This project is made just for fun and is not intended to be full game in future.
 *  Walls rendering
 *  Door entity rendering
 *  Collisions
-
+*  Block entities (for hidden rooms, not animated)
+*  Background music
 
 
 ## Possible (if project will be continued)
 
-*  Block entities (for hidden rooms)
 *  Sprite entities (for enemies and random objects)
 *  Main Menu
 *  Some kind of AI
