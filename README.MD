@@ -10,19 +10,20 @@ This project is made just for fun and is not intended to be full game in future.
 ## Currently in game
 
 *  Walls rendering
-*  Door entity rendering -  Really buggy - needs to be fixed
+*  Door entity rendering
+*  Collisions
 
 
 
 ## Possible (if project will be continued)
 
-*  Collisions
 *  Block entities (for hidden rooms)
 *  Sprite entities (for enemies and random objects)
 *  Main Menu
 *  Some kind of AI
 *  Remaking of all 6 episodes
-*  Adding some customized episodes (and maybe level editor)
+*  Adding some customized episodes 
+*  Level editor
 
 ## Controls
 
