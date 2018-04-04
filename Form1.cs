@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Media;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +18,6 @@ namespace _3DTest
         bool screenshot = false;
         int shotCount = 0;
 
-
         double blockSize = 64;
         double maxDistance = 200;
         double playerSpeed = 7;
@@ -30,6 +30,7 @@ namespace _3DTest
         Vector2 resolution = new Vector2(320, 200);
         Dictionary<Vector2, Tile> tileMap = new Dictionary<Vector2, Tile>();
         Dictionary<Vector2, Entity> doors = new Dictionary<Vector2, Entity>();
+        Dictionary<Vector2, Entity> blocks = new Dictionary<Vector2, Entity>();
 
         public void AddTile(string id, double X, double Y)
         {
@@ -39,11 +40,19 @@ namespace _3DTest
         public void AddDoor(string id, double X, double Y)
         {
             Entity door = new Entity(id, new Vector2(X * blockSize, Y * blockSize));
+            door.data.Add("Closing", true);
+            door.data.Add("Played", false);
             door.data.Add("OffSetX", 0.0);
             door.data.Add("OffSetY", 0.0);
-            door.data.Add("Closing", true);
             door.data.Add("Timer", 0);
             doors.Add(new Vector2(X * blockSize, Y * blockSize), door);
+        }
+
+        public void AddBlock(string id, double X, double Y)
+        {
+            Entity block = new Entity(id, new Vector2(X * blockSize, Y * blockSize));
+            block.data.Add("Direction", 1);
+            blocks.Add(new Vector2(X * blockSize, Y * blockSize), block);
         }
 
         public Form1()
@@ -52,40 +61,61 @@ namespace _3DTest
 
             pictureBox1.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
 
-            Textures.LoadTexture("Blue", "WallBlue.png");
-            Textures.LoadTexture("Dirt", "WallDirt.png");
-            Textures.LoadTexture("Stone", "WallStone.png");
-            Textures.LoadTexture("Blue90", "WallBlue90.png");
-            Textures.LoadTexture("Dirt90", "WallDirt90.png");
-            Textures.LoadTexture("Stone90", "WallStone90.png");
-            Textures.LoadTexture("DoorBlue", "DoorBlue.png");
-            Textures.LoadTexture("DoorBlue2", "DoorBlue2.png");
+            Textures.LoadTexture("Blue", "Textures/WallBlue.png");
+            Textures.LoadTexture("Dirt", "Textures/WallDirt.png");
+            Textures.LoadTexture("Stone", "Textures/WallStone.png");
+            Textures.LoadTexture("Blue90", "Textures/WallBlue90.png");
+            Textures.LoadTexture("Dirt90", "Textures/WallDirt90.png");
+            Textures.LoadTexture("Stone90", "Textures/WallStone90.png");
+            Textures.LoadTexture("DoorBlue", "Textures/DoorBlue.png");
+            Textures.LoadTexture("DoorBlue2", "Textures/DoorBlue2.png");
             Tiles.AddTile("Blue", new TileType("Blue", "Blue90"));
             Tiles.AddTile("Dirt", new TileType("Dirt", "Dirt90"));
             Tiles.AddTile("Stone", new TileType("Stone", "Stone90"));
             Entities.AddEntity("Door", new EntityType(EntityType.EntityClass.DOOR, false, new List<string>() { "DoorBlue", "DoorBlue2" }));
             Entities.AddEntity("Door90", new EntityType(EntityType.EntityClass.DOOR90, false, new List<string>() { "DoorBlue", "DoorBlue2" }));
+            Entities.AddEntity("Block", new EntityType(EntityType.EntityClass.BLOCK, false, new List<string>() { "Stone", "Stone90" }));
 
             Bitmap level = (Bitmap)Image.FromFile("levelmap.bmp");
             for (int x = 0; x < level.Width; x++)
             {
                 for (int y = 0; y < level.Height; y++)
                 {
-                    if (level.GetPixel(x, y).B == 132) AddTile("Blue", x, y);
-                    else if (level.GetPixel(x, y).R == 164) AddTile("Dirt", x, y);
-                    else if (level.GetPixel(x, y).B == 157) AddTile("Stone", x, y);
-                    else if (level.GetPixel(x, y).B == 157) AddTile("Stone", x, y);
-                    else if (level.GetPixel(x, y).B == 255)
+                    Color c = level.GetPixel(x, y);
+                    if (c.G == 255)
                     {
-                        if (level.GetPixel(x, y).R == 255)
-                            AddDoor("Door90", x, y);
-                        else AddDoor("Door", x, y);
+                        if (c.B == 0) AddTile("Blue", x, y);
+                        if (c.B == 1) AddTile("Stone", x, y);
+                        if (c.B == 2) AddTile("Dirt", x, y);
+                    } 
+                    else if (c.B == 255)
+                    {
+                        if (c.R == 0) AddDoor("Door", x, y);
+                        if (c.R == 1) AddDoor("Door90", x, y);
+                        if (c.R == 2)
+                        {
+                            AddBlock("Block", x, y);
+                            AddTile("Stone", x, y);
+                        }
+                        if (c.R == 3)
+                        {
+                            AddBlock("Block", x, y);
+                            AddTile("Dirt", x, y);
+                        }
+                        if (c.R == 4)
+                        {
+                            AddBlock("Block", x, y);
+                            AddTile("Blue", x, y);
+                        }
+                    }
+                    else if (c.R == 255)
+                    {
+                        playerPos = new Vector2((x+0.5) * 64, (y+0.5) * 64);
                     }
                 }
             }
 
             playerAngle = 270;
-            playerPos = new Vector2(68 * 64, 47.5 * 64);
             Thread thr = new Thread(Draw);
             thr.Start();
 
@@ -96,21 +126,41 @@ namespace _3DTest
             while (!this.Visible) ;
             while (this.Visible)
             {
+
                 foreach (Entity door in doors.Values)
                 {
                     bool closing = (bool)door.data["Closing"];
                     if (closing)
                     {
+                        double dist = door.Position.Dist(playerPos);
                         if (Entities.GetEntity(door.EntityType).Type == EntityType.EntityClass.DOOR)
                         {
                             double offset = (double)door.data["OffSetX"];
-                            if (offset > 0) offset -= 2;
+                            if (offset > 0)
+                            {
+                                if (!(bool)door.data["Played"])
+                                {
+                                    Audio song = new Audio("Sounds/DoorClose.wav", false);
+                                    song.Play();
+                                    door.data["Played"] = true;
+                                }
+                                offset -= 2;
+                            }
                             door.data["OffSetX"] = offset;
                         }
                         else
                         {
                             double offset = (double)door.data["OffSetY"];
-                            if (offset > 0) offset -= 2;
+                            if (offset > 0)
+                            {
+                                if (!(bool)door.data["Played"])
+                                {
+                                    Audio song = new Audio("Sounds/DoorClose.wav", false);
+                                    song.Play();
+                                    door.data["Played"] = true;
+                                }
+                                offset -= 2;
+                            }
                             door.data["OffSetY"] = offset;
                         }
                     }
@@ -150,8 +200,6 @@ namespace _3DTest
                         }
                     }
                 }
-                //door1.OffSetX++;
-                //door1.OffSetX %= 60;
                 DrawFrame();
             }
         }
@@ -196,18 +244,26 @@ namespace _3DTest
                         if (point.distance > 1)
                         {
                             size *= resolution.Y;
-                            g1.DrawImage(texture, new RectangleF((float)x - 2, (float)((resolution.Y / 2 - size / 2) * Math.Cos(Angle.GetRad(angleAdd))), 4, (float)size), new RectangleF((float)point.point, 0, 1, texture.Height), GraphicsUnit.Pixel);
+                            g1.DrawImage(texture, new RectangleF((float)x - 1, (float)((resolution.Y / 2 - size / 2) * Math.Cos(Angle.GetRad(angleAdd))), 2, (float)size), new RectangleF((float)point.point, 0, 1, texture.Height), GraphicsUnit.Pixel);
                         }
 
                         foreach ((Entity entity, Vector2 position, bool vertical) entity in entities)
                         {
                             Bitmap textur = Entities.GetTexture(entity.entity.EntityType, 0);
-                            var pont = GetTexturePointAndDistance(playerPos, new Vector2(entity.position.X - (double)entity.entity.data["OffSetX"], entity.position.Y - (double)entity.entity.data["OffSetY"]), angleAdd * x, entity.vertical);
-                            double siz = blockSize / pont.distance;
-                            if (pont.distance > 1)
+                            if (Entities.GetEntity(entity.entity.EntityType).Type == EntityType.EntityClass.DOOR ||
+                                Entities.GetEntity(entity.entity.EntityType).Type == EntityType.EntityClass.DOOR90)
                             {
-                                siz *= resolution.Y;
-                                g1.DrawImage(textur, new RectangleF((float)x - 2, (float)((resolution.Y / 2 - siz / 2) * Math.Cos(Angle.GetRad(angleAdd))), 4, (float)siz), new RectangleF((float)pont.point, 0, 1, textur.Height), GraphicsUnit.Pixel);
+                                var pont = GetTexturePointAndDistance(playerPos, new Vector2(entity.position.X - (double)entity.entity.data["OffSetX"], entity.position.Y - (double)entity.entity.data["OffSetY"]), angleAdd * x, entity.vertical);
+
+                                double siz = blockSize / pont.distance;
+                                if (pont.distance > 1)
+                                {
+                                    siz *= resolution.Y;
+                                    g1.DrawImage(textur, new RectangleF((float)x - 1, (float)((resolution.Y / 2 - siz / 2) * Math.Cos(Angle.GetRad(angleAdd))), 2, (float)siz), new RectangleF((float)pont.point, 0, 1, textur.Height), GraphicsUnit.Pixel);
+                                }
+                            }
+                            else if (Entities.GetEntity(entity.entity.EntityType).Type == EntityType.EntityClass.BLOCK)
+                            {
                             }
                         }
                     }
@@ -293,13 +349,16 @@ namespace _3DTest
             Vector2 rayPoint = new Vector2(playerPos.X, playerPos.Y);
             Tile tile = TileIntersects(rayPoint);
             List<(Entity entity, Vector2 point, bool vertical)> entities = new List<(Entity entity, Vector2 point, bool vertical)>();
+
             Vector2 temp = getMidPointHorizontal(rayPoint, angle);
             Entity door = DoorIntersects(temp);
             if (door != null)
                 if (Entities.GetEntity(door.EntityType).Type == EntityType.EntityClass.DOOR)
                     entities.Add((door, temp, false));
+            
             if (tile != null)
                 return (true, rayPoint, tile, entities);
+
             while (retries < maxDistance)
             {
                 retries++;
@@ -318,6 +377,7 @@ namespace _3DTest
 
             return (false, null, null, entities);
         }
+
         public (bool success, Vector2 point, Tile tile, List<(Entity entity, Vector2 point, bool vertical)> entities) CastRayVertical(Angle angle)
         {
             int retries = 0;
@@ -326,6 +386,7 @@ namespace _3DTest
             List<(Entity entity, Vector2 point, bool vertical)> entities = new List<(Entity entity, Vector2 point, bool vertical)>();
             Vector2 temp = getMidPointVertical(rayPoint, angle);
             Entity door = DoorIntersects(temp);
+
             if (door != null)
                 if (Entities.GetEntity(door.EntityType).Type == EntityType.EntityClass.DOOR90)
                     entities.Add((door, temp, true));
@@ -338,6 +399,7 @@ namespace _3DTest
                 if (door != null)
                     if (Entities.GetEntity(door.EntityType).Type == EntityType.EntityClass.DOOR90)
                         entities.Add((door, temp, true));
+
                 temp = getMidPointVertical(rayPoint, angle);
                 door = DoorIntersects(temp);
                 if (tile != null)
@@ -348,6 +410,7 @@ namespace _3DTest
 
             return (false, null, null, entities);
         }
+
 
         public Entity DoorIntersects(Vector2 point)
         {
@@ -627,6 +690,10 @@ namespace _3DTest
             {
                 newPos = new Vector2(playerPos.X, playerPos.Y);
             }
+            if (blocks.ContainsKey(optPos))
+            {
+                newPos = new Vector2(playerPos.X, playerPos.Y);
+            }
 
             playerPos = newPos;
             if (e.KeyCode == Keys.Space)
@@ -637,8 +704,42 @@ namespace _3DTest
                     if (dist < 150)
                     {
                         bool closing = !(bool)door.data["Closing"];
+                        if (!closing)
+                        {
+                            Audio song = new Audio("Sounds/DoorOpen.wav", false);
+                            song.Play();
+                        }
                         door.data["Closing"] = closing;
+                        door.data["Played"] = false;
                         door.data["Timer"] = 0;
+                    }
+                }
+                foreach (Vector2 key in blocks.Keys)
+                {
+                    Entity block = blocks[key];
+                    double dist = new Vector2(block.Position.X+blockSize/2, block.Position.Y+blockSize/2) .Dist(playerPos);
+                    if (dist < 150)
+                    {
+                        double x = 0;
+                        double y = 0;
+                        if ((playerAngle < 45) || (playerAngle >= 315)) { x = 0; y = blockSize*2; }
+                        else if (playerAngle >= 45 && playerAngle < 135) { x = blockSize * 2; y = 0; }
+                        else if (playerAngle >= 135 && playerAngle < 225) { x = 0; y = -blockSize * 2; }
+                        else if (playerAngle >= 225 && playerAngle < 315) { x = -blockSize * 2; y = 0; }
+
+                        Tile t = tileMap[key];
+                        t.Position.Y += y;
+                        t.Position.X += x;
+                        block.Position.X += x;
+                        block.Position.Y += y;
+
+                        tileMap.Remove(key);
+                        blocks.Remove(key);
+                        key.Y += y;
+                        key.X += x;
+                        blocks.Add(key, block);
+                        tileMap.Add(key, t);
+                        break;
                     }
                 }
             }
@@ -695,6 +796,12 @@ namespace _3DTest
                 }
             }
             base.WndProc(ref m);
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            Audio song = new Audio("Sounds/Level1.wav", true);
+            song.Play();
         }
     }
 }
