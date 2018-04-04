@@ -26,8 +26,7 @@ namespace _3DTest
     {
         public string EntityType;
         public Vector2 Position;
-        public double OffSetX = 0;
-        public double OffSetY = 0;
+        public Dictionary<string, object> data = new Dictionary<string, object>();
 
         public Entity(string type, Vector2 position)
         {

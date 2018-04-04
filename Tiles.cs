@@ -11,12 +11,11 @@ namespace _3DTest
     {
         public string Texture;
         public string Texture90;
-        public bool Door;
-        public TileType(string texture, string texture90, bool door = false)
+
+        public TileType(string texture, string texture90)
         {
             Texture = texture;
             Texture90 = texture90;
-            Door = door;
         }
 
     }

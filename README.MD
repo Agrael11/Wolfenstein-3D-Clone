@@ -29,6 +29,7 @@ This project is made just for fun and is not intended to be full game in future.
 W, S - Forward & Backward movement
 A, D - Camera rotation
 Q, E - Strafing
+Space - Open Doors
 ALT + Enter - Fullscreen mode
 
 ## Images
