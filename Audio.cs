@@ -21,8 +21,10 @@ namespace _3DTest
         public void Play()
         {
             NAudio.Wave.AudioFileReader reader = new NAudio.Wave.AudioFileReader(File);
-            NAudio.Wave.WaveOutEvent output = new NAudio.Wave.WaveOutEvent();
-            output.Volume = Volume;
+            NAudio.Wave.WaveOutEvent output = new NAudio.Wave.WaveOutEvent
+            {
+                Volume = Volume
+            };
             output.Init(reader);
             if (Looping)
                 output.PlaybackStopped += stopped;

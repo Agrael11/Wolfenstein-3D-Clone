@@ -19,8 +19,8 @@ namespace _3DTest
         int shotCount = 0;
 
         double blockSize = 64;
-        double maxDistance = 200;
-        double playerSpeed = 7;
+        double maxDistance = 80;
+        double playerSpeed = 4;
         Bitmap display;
 
         Vector2 playerPos = new Vector2(32, 32);
@@ -31,6 +31,7 @@ namespace _3DTest
         Dictionary<Vector2, Tile> tileMap = new Dictionary<Vector2, Tile>();
         Dictionary<Vector2, Entity> doors = new Dictionary<Vector2, Entity>();
         Dictionary<Vector2, Entity> blocks = new Dictionary<Vector2, Entity>();
+        List<Entity> gameentites = new List<Entity>();
 
         public void AddTile(string id, double X, double Y)
         {
@@ -69,12 +70,19 @@ namespace _3DTest
             Textures.LoadTexture("Stone90", "Textures/WallStone90.png");
             Textures.LoadTexture("DoorBlue", "Textures/DoorBlue.png");
             Textures.LoadTexture("DoorBlue2", "Textures/DoorBlue2.png");
+            Textures.LoadTexture("Statue", "Textures/Statue.png");
+            Textures.LoadTexture("Lamp", "Textures/Lamp.png");
+            Textures.LoadTexture("Table", "Textures/Table.png");
             Tiles.AddTile("Blue", new TileType("Blue", "Blue90"));
             Tiles.AddTile("Dirt", new TileType("Dirt", "Dirt90"));
             Tiles.AddTile("Stone", new TileType("Stone", "Stone90"));
             Entities.AddEntity("Door", new EntityType(EntityType.EntityClass.DOOR, false, new List<string>() { "DoorBlue", "DoorBlue2" }));
             Entities.AddEntity("Door90", new EntityType(EntityType.EntityClass.DOOR90, false, new List<string>() { "DoorBlue", "DoorBlue2" }));
             Entities.AddEntity("Block", new EntityType(EntityType.EntityClass.BLOCK, false, new List<string>() { "Stone", "Stone90" }));
+            Entities.AddEntity("Statue", new EntityType(EntityType.EntityClass.SPRITE, true, new List<string>() { "Statue"}));
+            Entities.AddEntity("Lamp", new EntityType(EntityType.EntityClass.SPRITE, true, new List<string>() { "Lamp" }));
+            Entities.AddEntity("Table", new EntityType(EntityType.EntityClass.SPRITE, true, new List<string>() { "Table" }));
+
 
             Bitmap level = (Bitmap)Image.FromFile("levelmap.bmp");
             for (int x = 0; x < level.Width; x++)
@@ -107,6 +115,18 @@ namespace _3DTest
                             AddBlock("Block", x, y);
                             AddTile("Blue", x, y);
                         }
+                        if (c.R == 5)
+                        {
+                            gameentites.Add(new Entity("Statue", new Vector2(x * 64, y * 64)));
+                        }
+                        if (c.R == 6)
+                        {
+                            gameentites.Add(new Entity("Lamp", new Vector2(x * 64, y * 64)));
+                        }
+                        if (c.R == 7)
+                        {
+                            gameentites.Add(new Entity("Table", new Vector2(x * 64, y * 64)));
+                        }
                     }
                     else if (c.R == 255)
                     {
@@ -121,11 +141,124 @@ namespace _3DTest
 
         }
 
+        bool released = false;
+
         public void Draw()
         {
+
+
             while (!this.Visible) ;
             while (this.Visible)
             {
+
+                Vector2 newPos = new Vector2(playerPos.X, playerPos.Y);
+
+                if (keysPressed.Contains(Keys.A))
+                {
+                    playerAngle -= playerSpeed / 3;
+                }
+                if (keysPressed.Contains(Keys.D))
+                {
+                    playerAngle += playerSpeed / 3;
+                }
+                if (keysPressed.Contains(Keys.W))
+                {
+                    newPos.Y += Math.Cos(playerAngle.GetRad()) * playerSpeed;
+                    newPos.X += Math.Sin(playerAngle.GetRad()) * playerSpeed;
+                }
+                if (keysPressed.Contains(Keys.S))
+                {
+                    newPos.Y -= Math.Cos(playerAngle.GetRad()) * playerSpeed;
+                    newPos.X -= Math.Sin(playerAngle.GetRad()) * playerSpeed;
+                }
+                if (keysPressed.Contains(Keys.E))
+                {
+                    newPos.Y -= Math.Sin(playerAngle.GetRad()) * playerSpeed;
+                    newPos.X += Math.Cos(playerAngle.GetRad()) * playerSpeed;
+                }
+                if (keysPressed.Contains(Keys.Q))
+                {
+                    newPos.Y += Math.Sin(playerAngle.GetRad()) * playerSpeed;
+                    newPos.X -= Math.Cos(playerAngle.GetRad()) * playerSpeed;
+                }
+
+                Vector2 optPos = new Vector2(newPos.X - newPos.X % blockSize, newPos.Y - newPos.Y % blockSize);
+
+                if (doors.ContainsKey(optPos))
+                {
+                    if ((bool)doors[optPos].data["Closing"])
+                    {
+                        newPos = new Vector2(playerPos.X, playerPos.Y);
+                    }
+                }
+                if (tileMap.ContainsKey(optPos))
+                {
+                    newPos = new Vector2(playerPos.X, playerPos.Y);
+                }
+                if (blocks.ContainsKey(optPos))
+                {
+                    newPos = new Vector2(playerPos.X, playerPos.Y);
+                }
+
+                playerPos = newPos;
+                if (keysPressed.Contains(Keys.Space))
+                {
+                    if (!released)
+                    {
+                        released = true;
+                        foreach (Entity door in doors.Values)
+                        {
+                            double dist = door.Position.Dist(playerPos);
+                            if (dist < 150)
+                            {
+                                bool closing = !(bool)door.data["Closing"];
+                                double timer = (int)door.data["Timer"];
+                                if (!closing)
+                                {
+                                    Audio song = new Audio("Sounds/DoorOpen.wav", false);
+                                    song.Play();
+                                }
+                                door.data["Closing"] = closing;
+                                door.data["Played"] = false;
+                                door.data["Timer"] = 0;
+                            }
+                        }
+                        foreach (Vector2 key in blocks.Keys)
+                        {
+                            Entity block = blocks[key];
+                            double dist = new Vector2(block.Position.X + blockSize / 2, block.Position.Y + blockSize / 2).Dist(playerPos);
+                            if (dist < 150)
+                            {
+                                double x = 0;
+                                double y = 0;
+                                if ((playerAngle < 45) || (playerAngle >= 315)) { x = 0; y = blockSize * 2; }
+                                else if (playerAngle >= 45 && playerAngle < 135) { x = blockSize * 2; y = 0; }
+                                else if (playerAngle >= 135 && playerAngle < 225) { x = 0; y = -blockSize * 2; }
+                                else if (playerAngle >= 225 && playerAngle < 315) { x = -blockSize * 2; y = 0; }
+
+                                Tile t = tileMap[key];
+                                t.Position.Y += y;
+                                t.Position.X += x;
+                                block.Position.X += x;
+                                block.Position.Y += y;
+
+                                tileMap.Remove(key);
+                                blocks.Remove(key);
+                                key.Y += y;
+                                key.X += x;
+                                blocks.Add(key, block);
+                                tileMap.Add(key, t);
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (released)
+                {
+                    released = false;
+                }
+
+
 
                 foreach (Entity door in doors.Values)
                 {
@@ -215,7 +348,8 @@ namespace _3DTest
                 g1.FillRectangle(Brushes.Gray, new RectangleF(0, (float)(resolution.Y / 2), (float)resolution.X, (float)(resolution.Y / 2)));
                 double angle = playerAngle - FOV / 2;
                 double angleAdd = FOV / resolution.X;
-                for (double x = 0; x <= resolution.X; x++)
+                double[] zBuffer = new double[(int)resolution.X];
+                for (double x = 0; x < resolution.X; x++)
                 {
                     var result = CastRay(angle + angleAdd * x);
                     if (result.success)
@@ -240,11 +374,14 @@ namespace _3DTest
                                 texture = Entities.GetTexture(doors[new Vector2(position.X, position.Y)].EntityType, 1);
                             else texture = Tiles.GetTexture(result.tile.Type, false);
                         }
-                        double size = blockSize / point.distance;
+                        double dist = point.distance;
+                        dist = dist * Math.Cos(((Angle)(playerAngle- angle)).GetRad());
+                        double size = blockSize / dist;
                         if (point.distance > 1)
                         {
                             size *= resolution.Y;
-                            g1.DrawImage(texture, new RectangleF((float)x - 1, (float)((resolution.Y / 2 - size / 2) * Math.Cos(Angle.GetRad(angleAdd))), 2, (float)size), new RectangleF((float)point.point, 0, 1, texture.Height), GraphicsUnit.Pixel);
+                            g1.DrawImage(texture, new RectangleF((float)x - 1, (float)(resolution.Y / 2 - size / 2), 2, (float)size), new RectangleF((float)point.point, 0, 1, texture.Height), GraphicsUnit.Pixel);
+                            zBuffer[(int)x] = point.distance;
                         }
 
                         foreach ((Entity entity, Vector2 position, bool vertical) entity in entities)
@@ -258,12 +395,64 @@ namespace _3DTest
                                 double siz = blockSize / pont.distance;
                                 if (pont.distance > 1)
                                 {
+                                    zBuffer[(int)x] = pont.distance;
                                     siz *= resolution.Y;
-                                    g1.DrawImage(textur, new RectangleF((float)x - 1, (float)((resolution.Y / 2 - siz / 2) * Math.Cos(Angle.GetRad(angleAdd))), 2, (float)siz), new RectangleF((float)pont.point, 0, 1, textur.Height), GraphicsUnit.Pixel);
+                                    Rectangle drawRec = new RectangleF((float)x - 1, (float)((resolution.Y / 2 - siz / 2) * Math.Cos(Angle.GetRad(angleAdd))), 2, (float)siz);
+                                    g1.DrawImage(textur, drawRec, new RectangleF((float)pont.point, 0, 1, textur.Height), GraphicsUnit.Pixel);
                                 }
                             }
-                            else if (Entities.GetEntity(entity.entity.EntityType).Type == EntityType.EntityClass.BLOCK)
+                        }
+                    }
+                }
+
+                foreach (Entity entity in gameentites)
+                {
+                    Vector2 spritePosWorld = new Vector2(entity.Position.X, entity.Position.Y);
+                    spritePosWorld.X+=blockSize/2;
+                    spritePosWorld.Y += blockSize/2;
+                    Vector2 spritePosView = new Vector2(spritePosWorld.X - playerPos.X, spritePosWorld.Y - playerPos.Y);
+                    double distSprite = spritePosWorld.Dist(playerPos);
+                    double cameraPosX = Math.Atan2(spritePosView.Y, spritePosView.X);
+                    Angle realAngle = 0;
+                    realAngle.SetRad(Math.Atan2(spritePosView.Y, spritePosView.X));
+                    realAngle += playerAngle;
+                    realAngle -= 90;
+                    double a = (double)realAngle;
+                    //Console.WriteLine(a);
+                    if (a > 320)
+                    {
+                        a = 360 - a;
+                        cameraPosX = resolution.X / 2 + (a) / (FOV / 2) * resolution.X / 2 - blockSize / (distSprite / 100);
+                        double siz = blockSize / distSprite;
+                        siz *= resolution.Y;
+                        for (int x = 0; x < blockSize; x++)
+                        {
+                            int realX = (int)(cameraPosX + x * siz / blockSize);
+                            Rectangle drawRec = new Rectangle(realX, this.resolution.Y / 2 - siz / 2, siz / (blockSize / 2), siz);
+                            if (drawRec.Width < 1) drawRec.Width = 1;
+                            if ((realX > 0) && (realX < resolution.X))
                             {
+                                if (distSprite < zBuffer[realX])
+                                    g1.DrawImage(Entities.GetTexture(entity.EntityType, 0), drawRec, new Rectangle(x, 0, 2, 64), GraphicsUnit.Pixel);
+                            }
+                        }
+                    }
+                    else if (a < 30)
+                    {
+                        a = 30 - a;
+                        cameraPosX = (a) / (FOV / 2) * resolution.X / 2 - blockSize/(distSprite/100);
+                        double siz = blockSize / distSprite;
+                        siz *= resolution.Y;
+                        for (int x = 0; x < blockSize; x++)
+                        {
+                            int realX = (int)(cameraPosX + x * siz / blockSize);
+
+                            Rectangle drawRec = new Rectangle(realX, this.resolution.Y / 2 - siz / 2, siz / (blockSize / 2), siz);
+                            if (drawRec.Width < 1) drawRec.Width = 1;
+                            if ((realX > 0) && (realX < resolution.X))
+                            {
+                                if (distSprite < zBuffer[realX])
+                                    g1.DrawImage(Entities.GetTexture(entity.EntityType, 0), drawRec, new Rectangle(x, 0, 2, 64), GraphicsUnit.Pixel);
                             }
                         }
                     }
@@ -643,106 +832,12 @@ namespace _3DTest
             return pos2;
         }
 
+        public List<Keys> keysPressed = new List<Keys>();
+
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            Console.WriteLine($"Angle {(double)playerAngle}; X: {playerPos.X}; Y: {playerPos.Y} ");
-            Vector2 newPos = new Vector2(playerPos.X, playerPos.Y);
-
-            if (e.KeyCode == Keys.A)
-            {
-                playerAngle -= playerSpeed / 4;
-            }
-            if (e.KeyCode == Keys.D)
-            {
-                playerAngle += playerSpeed / 4;
-            }
-            if (e.KeyCode == Keys.W)
-            {
-                newPos.Y += Math.Cos(playerAngle.GetRad()) * playerSpeed;
-                newPos.X += Math.Sin(playerAngle.GetRad()) * playerSpeed;
-            }
-            if (e.KeyCode == Keys.S)
-            {
-                newPos.Y -= Math.Cos(playerAngle.GetRad()) * playerSpeed;
-                newPos.X -= Math.Sin(playerAngle.GetRad()) * playerSpeed;
-            }
-            if (e.KeyCode == Keys.E)
-            {
-                newPos.Y -= Math.Sin(playerAngle.GetRad()) * playerSpeed;
-                newPos.X += Math.Cos(playerAngle.GetRad()) * playerSpeed;
-            }
-            if (e.KeyCode == Keys.Q)
-            {
-                newPos.Y += Math.Sin(playerAngle.GetRad()) * playerSpeed;
-                newPos.X -= Math.Cos(playerAngle.GetRad()) * playerSpeed;
-            }
-
-            Vector2 optPos = new Vector2(newPos.X - newPos.X % blockSize, newPos.Y - newPos.Y % blockSize);
-
-            if (doors.ContainsKey(optPos))
-            {
-                if ((bool)doors[optPos].data["Closing"])
-                {
-                    newPos = new Vector2(playerPos.X, playerPos.Y);
-                }
-            }
-            if (tileMap.ContainsKey(optPos))
-            {
-                newPos = new Vector2(playerPos.X, playerPos.Y);
-            }
-            if (blocks.ContainsKey(optPos))
-            {
-                newPos = new Vector2(playerPos.X, playerPos.Y);
-            }
-
-            playerPos = newPos;
-            if (e.KeyCode == Keys.Space)
-            {
-                foreach (Entity door in doors.Values)
-                {
-                    double dist = door.Position.Dist(playerPos);
-                    if (dist < 150)
-                    {
-                        bool closing = !(bool)door.data["Closing"];
-                        if (!closing)
-                        {
-                            Audio song = new Audio("Sounds/DoorOpen.wav", false);
-                            song.Play();
-                        }
-                        door.data["Closing"] = closing;
-                        door.data["Played"] = false;
-                        door.data["Timer"] = 0;
-                    }
-                }
-                foreach (Vector2 key in blocks.Keys)
-                {
-                    Entity block = blocks[key];
-                    double dist = new Vector2(block.Position.X+blockSize/2, block.Position.Y+blockSize/2) .Dist(playerPos);
-                    if (dist < 150)
-                    {
-                        double x = 0;
-                        double y = 0;
-                        if ((playerAngle < 45) || (playerAngle >= 315)) { x = 0; y = blockSize*2; }
-                        else if (playerAngle >= 45 && playerAngle < 135) { x = blockSize * 2; y = 0; }
-                        else if (playerAngle >= 135 && playerAngle < 225) { x = 0; y = -blockSize * 2; }
-                        else if (playerAngle >= 225 && playerAngle < 315) { x = -blockSize * 2; y = 0; }
-
-                        Tile t = tileMap[key];
-                        t.Position.Y += y;
-                        t.Position.X += x;
-                        block.Position.X += x;
-                        block.Position.Y += y;
-
-                        tileMap.Remove(key);
-                        blocks.Remove(key);
-                        key.Y += y;
-                        key.X += x;
-                        blocks.Add(key, block);
-                        tileMap.Add(key, t);
-                        break;
-                    }
-                }
-            }
+            if (!keysPressed.Contains(e.KeyCode))
+                keysPressed.Add(e.KeyCode);
             if (e.Modifiers == Keys.Alt)
             {
                 if (e.KeyCode == Keys.Enter)
@@ -802,6 +897,12 @@ namespace _3DTest
         {
             Audio song = new Audio("Sounds/Level1.wav", true);
             song.Play();
+        }
+
+        private void Form1_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (keysPressed.Contains(e.KeyCode))
+                keysPressed.Remove(e.KeyCode);
         }
     }
 }

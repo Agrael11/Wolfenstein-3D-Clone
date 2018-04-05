@@ -12,13 +12,13 @@ This project is made just for fun and is not intended to be full game in future.
 *  Walls rendering
 *  Door entity rendering
 *  Collisions
+*  Block entities (for hidden rooms)
+*  Sprite entities (for enemies and random objects)
 
 
 
 ## Possible (if project will be continued)
 
-*  Block entities (for hidden rooms)
-*  Sprite entities (for enemies and random objects)
 *  Main Menu
 *  Some kind of AI
 *  Remaking of all 6 episodes
@@ -55,6 +55,9 @@ on Y or X axis. Currently raycasting have 2 passes - one for vertical and one fo
 that's gonna change to fix door rendering.
 
 After ray hits target, precise collsion is calculated and send along with collider as result of raycast. From this one stripe
-of texture is rendered on x spot on screen.
+of texture is rendered on x spot on screen, also it's distance is saved into zBuffer.
 
-For controls I'm currently using Windows Forms keyDown event, but that may change in future.
+Sprites are rendered separately. Their position is transformed into screen space and each vertical stripe is rendered, if
+zBuffer is not bigger than it's distance from player.
+
+For controls I'm currently using Windows Forms keyDown and keyUp event.
