@@ -83,6 +83,8 @@ namespace _3DTest.Rendering
                     }
                 }
 
+                Program.game.GameEntities = Program.game.GameEntities.OrderByDescending(t => t.Position.Dist(Program.game.PlayerPos)).ToList();
+
                 foreach (Entity entity in Program.game.GameEntities)
                 {
                     Vector2 spritePosWorld = new Vector2(entity.Position.X, entity.Position.Y);
