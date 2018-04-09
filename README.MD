@@ -1,4 +1,4 @@
-﻿#Wolfenstein 3D Clone
+# Wolfenstein 3D Clone
 
 This is my Wolfenstein 3D engine clone made only with Windows Forms.
 Everything is rendered into Bitmap using Graphics class.
